@@ -8,13 +8,14 @@ const shuffle = (a) => {
 	}
 };
 
+const toKebab = (str) => str.replace(/[A-Z]/g, (str) => '-' + str.toLowerCase());
+
 class QPlayer{
 	constructor(settings){
 		if(typeof settings !== 'object') settings = {};
 
 		this.settings = {
 			PRELOAD_ENABLED: true,
-			REPEAT: true,
 			LYRIC_CALLBACK: undefined,
 			PLUGINS: [],
 			VISUALIZER: '#visualizer',
@@ -29,6 +30,7 @@ class QPlayer{
 		this.pointer = 0;
 		this.loadedPointer = 0;
 		this._shuffle = false;
+		this._repeat = false;
 		this.surfer = WaveSurfer.create({
 			container: this.settings.VISUALIZER
 		});
@@ -57,12 +59,17 @@ class QPlayer{
 
 		this.surfer.on('finish', () => this.nextTrack());
 		this.surfer.on('audioprocess', (ev) => {
-			const timestamp = Math.round(ev.playbackTime / 1000);
+			const timestamp = Math.round(ev.playbackTime * 1000);
 			if(this.lyrics !== undefined && this.lyrics[timestamp]){
 				if(this.activatedLyric !== undefined) this.activatedLyric.activated = false;
 				this.activatedLyric = this.lyrics[timestamp];
 				this.activatedLyric.activated = true;
 			}
+			this.emit('processAudio', timestamp);
+		});
+
+		['play', 'pause', 'stop', 'nextTrack', 'prevTrack', 'toggleShuffle'].forEach((k) => {
+			this.commands[toKebab(k)] = () => this[k]();
 		});
 	}
 
@@ -101,21 +108,45 @@ class QPlayer{
 		}
 	}
 
+	get repeat(){
+		return this._repeat;
+	}
+
+	set repeat(v){
+		this.emit('repeat', v);
+		this._repeat = v;
+	}
+
 	addCommand(plugin, commandName, callback){
 		this.commands[`${plugin.getName()}:${commandName}`] = callback;
+	}
+
+	execCommand(commandName){
+		const command = this.commands[commandName];
+		if(typeof command !== 'function') return false;
+
+		this.emit('execCommand', commandName);
+
+		command();
+	}
+
+	toggleShuffle(){
+		if(this.shuffle === false) this.shuffle = true;
+		else this.shuffle = false;
 	}
 
 	addToQueue(src, title, author){
 		if(this.originalQueue.find((v) => v.src === src)) return false;
 
 		const wrapper = new AudioWrapper(this, src, title, author);
-		this.emit('queue', wrapper);
 
 		this.originalQueue.push(wrapper);
 
 		if(this.shuffle){
 			this.queue.splice(Math.floor(Math.random() * this.queue.length), 0, wrapper);
 		}
+
+		this.emit('addQueue', {audio: wrapper, queue: this.queue});
 	}
 
 	removeFromQueue(src){
@@ -125,8 +156,11 @@ class QPlayer{
 		const currentIndex = this.originalQueue.findIndex((v) => v.src === src);
 		if(typeof currentIndex !== 'number') return false;
 
+		const audio = this.originalQueue[currentOriginalIndex];
 		this.originalQueue.splice(currentOriginalIndex, 1);
 		this.queue.splice(currentIndex, 1);
+
+		this.emit('removeQueue', {audio, queue: this.queue});
 
 		if(this.pointer === currentIndex){
 			this.stop();
@@ -154,11 +188,18 @@ class QPlayer{
 
 		if(typeof currentIndex !== 'number') return false;
 
+
 		const extracted = this.queue.splice(currentIndex, 1);
 		this.queue.splice(newIndex, 0, extracted);
 
 		if(currentIndex < this.pointer && newIndex >= this.pointer) this.pointer--;
 		if(currentIndex > this.pointer && newIndex <= this.pointer) this.pointer++;
+
+		this.emit('swapQueue', {
+			previousIndex: currentIndex,
+			currentIndex: newIndex,
+			queue: this.queue
+		});
 	}
 
 	reserveNext(src){
@@ -171,10 +212,14 @@ class QPlayer{
 		if(this.queue.length < 1) return false;
 
 		let next = this.nextTrackPointer;
-		if(!this.queue[next]) next = 0;
+		if(!this.queue[next]){
+			if(this.repeat) next = 0;
+			else return this.stop();
+		}
 
-		this.emit('next', next);
+		this.emit('next', this.queue[next]);
 		this.pointer = next;
+		this.stop();
 		this.play();
 	}
 
@@ -182,11 +227,19 @@ class QPlayer{
 		if(this.queue.length < 1) return false;
 
 		let prev = this.prevTrackPointer;
-		if(!this.queue[prev]) prev = this.queue.length - 1;
+		if(!this.queue[prev]){
+			if(this.repeat) prev = this.queue.length - 1;
+			else return this.stop();
+		}
 
-		this.emit('prev', prev);
+		this.emit('prev', this.queue[prev]);
 		this.pointer = prev;
+		this.stop();
 		this.play();
+	}
+
+	seek(time){
+		this.surfer.seekTo(time / this.surfer.getDuration());
 	}
 
 	play(){
@@ -197,13 +250,13 @@ class QPlayer{
 			if(this.loadedPointer !== this.pointer){
 				this.loadedPointer = this.pointer;
 				this.surfer.loadBlob(this.current.blob);
-				this.emit('load media');
+				this.emit('insertMedia', this.current);
 			}
 
 			if(this.playing){
 				this.pause();
 			}
-			this.emit('play');
+			this.emit('play', this.playing);
 			this.lyrics = undefined;
 			this.activatedLyric = undefined;
 
@@ -237,6 +290,82 @@ class QPlayer{
 		this.emit('stop');
 		this.playing = false;
 		this.surfer.stop();
+	}
+
+	attachToVuexStore(store){
+		[
+			'play',
+			'pause',
+			'stop',
+			'next',
+			'prev',
+			'processAudio',
+			'shuffle',
+			'addQueue',
+			'removeQueue',
+			'swapQueue'
+		].forEach((v) => {
+			this.on(v, (payload) => {
+				store.commit(v, payload);
+			});
+		});
+	}
+
+	get defaultMutations(){
+		return {
+			play(state){
+				state.play = true;
+			},
+
+			pause(state){
+				state.play = false;
+			},
+
+			stop(state){
+				state.play = false;
+				state.time = 0;
+			},
+
+			next(state, playing){
+				state.playing = playing;
+				state.time = 0;
+			},
+
+			prev(state, playing){
+				state.playing = playing;
+				state.time = 0;
+			},
+
+			shuffle(state, shuffle){
+				state.shuffle = shuffle;
+			},
+
+			processAudio(state, milliseconds){
+				state.time = milliseconds;
+			},
+
+			addQueue(state, {queue}){
+				this.queue = queue;
+			},
+
+			removeQueue(state, {queue}){
+				this.queue = queue;
+			},
+
+			swapQueue(state, {queue}){
+				this.queue = queue;
+			}
+		};
+	}
+
+	get defaultStates(){
+		return {
+			play: false,
+			shuffle: false,
+			queue: [],
+			playing: undefined,
+			time: 0
+		}
 	}
 }
 
@@ -301,7 +430,7 @@ class VolumePlugin extends QPlugin{
 		return 'volume';
 	}
 
-	connect(ctx){
+	connect(ctx, player){
 		this.splitter = ctx.createChannelSplitter(2);
 
 		this.lgain = ctx.createGain();
@@ -318,6 +447,31 @@ class VolumePlugin extends QPlugin{
 		this.lgain.connect(this.merger, 0);
 		this.rgain.connect(this.merger, 0, 1);
 
+		player.addCommand(this, "up", () => {
+			this.volumeL += 0.1;
+			this.volumeR += 0.1;
+		});
+
+		player.addCommand(this, "down", () => {
+			this.volumeL -= 0.1;
+			this.volumeR -= 0.1;
+		});
+
+		player.addCommand(this, "lup", () => {
+			this.volumeL += 0.1;
+		});
+
+		player.addCommand(this, "ldown", () => {
+			this.volumeR -= 0.1;
+		});
+
+		player.addCommand(this, "rup", () => {
+			this.volumeR += 0.1;
+		});
+
+		player.addCommand(this, "rdown", () => {
+			this.volumeR -= 0.1;
+		});
 		return [this.splitter, this.merger];
 	}
 
@@ -326,7 +480,7 @@ class VolumePlugin extends QPlugin{
 	}
 
 	set volumeL(v){
-		this._volumeL = v;
+		this._volumeL = Math.max(0, Math.min(2, v));
 		this.updateVolume();
 	}
 
@@ -335,7 +489,7 @@ class VolumePlugin extends QPlugin{
 	}
 
 	set volumeR(v){
-		this._volumeR = v;
+		this._volumeR = Math.max(0, Math.min(2, v));
 		this.updateVolume();
 	}
 
@@ -413,7 +567,14 @@ class EqualizerPlugin extends QPlugin{
 class KeyInputPlugin extends QPlugin{
 	constructor(keymap){
 		super();
-		this.keymap = keymap;
+		this.keymap = {
+			"z": "prev",
+			"x": "play",
+			"c": "pause",
+			"v": "next",
+			"arrowup": "volume:up",
+			"arrowdown": "volume:down"
+		};
 	}
 
 	getName(){
@@ -421,7 +582,18 @@ class KeyInputPlugin extends QPlugin{
 	}
 
 	connect(ctx, player){
+		document.addEventListener('keydown', (ev) => {
+			let keyString = '';
 
+			if(ev.ctrlKey) keyString += 'ctrl-';
+			if(ev.alt) keyString += 'alt-'
+			if(ev.shiftKey) keyString += 'shift-';
+			if(ev.metaKey) keyString += 'cmd-';
+
+			keyString += ev.key.toLowerCase();
+
+			if(this.keymap[keyString]) player.execCommand(this.keymap[keyString]);
+		});
 	}
 }
 

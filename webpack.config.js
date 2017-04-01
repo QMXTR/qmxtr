@@ -79,6 +79,12 @@ module.exports = {
 		new ExtractTextPlugin('qmxtr.bundle.css')
 	],
 
+	resolve: {
+		alias: {
+			'theme.less': path.resolve(__dirname, 'less', 'theme.less')
+		}
+	},
+
 	devtool: '#eval-source-map'
 };
 

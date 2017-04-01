@@ -1,3 +1,5 @@
+import Vue from "vue";
+import Vuex from "vuex";
 import {QPlayer, QPlugin, EqualizerPlugin, VolumePlugin, KeyInputPlugin} from "./js/player.js";
 
 class CustomEffectPlugin extends QPlugin{
@@ -25,3 +27,14 @@ qmxtr.player = new QPlayer({
 		qmxtr.sdvx
 	]
 });
+
+Vue.use(Vuex);
+
+qmxtr.store = new Vuex.Store({
+	state: qmxtr.player.defaultStates,
+	mutations: qmxtr.player.defaultMutations
+});
+
+qmxtr.player.attachToVuexStore(qmxtr.store);
+
+window.Qmxtr = qmxtr;

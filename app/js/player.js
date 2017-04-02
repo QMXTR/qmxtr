@@ -40,21 +40,97 @@ class QPlayer{
 		this.commands = [];
 		this.playing = false;
 
+		this.vuexMutations = [
+			'play',
+			'pause',
+			'stop',
+			'next',
+			'prev',
+			'processAudio',
+			'shuffle',
+			'addQueue',
+			'removeQueue',
+			'swapQueue'
+		];
+
+		this.vuexMutationDefinitions = {
+			play(state){
+				state.play = true;
+			},
+
+			pause(state){
+				state.play = false;
+			},
+
+			stop(state){
+				state.play = false;
+				state.time = 0;
+			},
+
+			next(state, playing){
+				state.playing = playing;
+				state.time = 0;
+			},
+
+			prev(state, playing){
+				state.playing = playing;
+				state.time = 0;
+			},
+
+			shuffle(state, shuffle){
+				state.shuffle = shuffle;
+			},
+
+			processAudio(state, milliseconds){
+				state.time = milliseconds;
+			},
+
+			addQueue(state, {queue}){
+				state.queue = queue;
+			},
+
+			removeQueue(state, {queue}){
+				state.queue = queue;
+			},
+
+			swapQueue(state, {queue}){
+				state.queue = queue;
+			}
+		};
+
+		this.vuexStates = {
+			play: false,
+			shuffle: false,
+			queue: [],
+			playing: undefined,
+			time: 0
+		};
+
+		['play', 'pause', 'stop', 'nextTrack', 'prevTrack', 'toggleShuffle'].forEach((k) => {
+			this.commands[toKebab(k)] = () => this[k]();
+		});
+
 		if(this.settings.PLUGINS.length >= 1){
 			this.plugins = this.settings.PLUGINS.map((v) => {
-				v.connect(this.surfer.backend.ac, this);
+				return v.connect(this.surfer.backend.ac, this);
 			});
 
 			const last = this.plugins.reduce((prev, curr) => {
+				if(!Array.isArray(prev) || prev.length !== 2) return curr;
 				if(!Array.isArray(curr) || curr.length !== 2) return prev;
 
 				prev[1].connect(curr[0]);
 				return curr;
 			})[1];
 
-			const first = this.plugins[0][0];
+			const first = this.plugins.reduceRight((prev, curr) => {
+				if(!Array.isArray(prev) || prev.length !== 2) return curr;
+				if(!Array.isArray(curr) || curr.length !== 2) return prev;
 
-			this.surfer.setFilter(first, last);
+				return curr;
+			})[0];
+
+			this.surfer.backend.setFilter(first, last);
 		}
 
 		this.surfer.on('finish', () => this.nextTrack());
@@ -66,10 +142,6 @@ class QPlayer{
 				this.activatedLyric.activated = true;
 			}
 			this.emit('processAudio', timestamp);
-		});
-
-		['play', 'pause', 'stop', 'nextTrack', 'prevTrack', 'toggleShuffle'].forEach((k) => {
-			this.commands[toKebab(k)] = () => this[k]();
 		});
 	}
 
@@ -144,7 +216,7 @@ class QPlayer{
 
 		if(this.shuffle){
 			this.queue.splice(Math.floor(Math.random() * this.queue.length), 0, wrapper);
-		}
+		}else this.queue.push(wrapper);
 
 		this.emit('addQueue', {audio: wrapper, queue: this.queue});
 	}
@@ -293,18 +365,7 @@ class QPlayer{
 	}
 
 	attachToVuexStore(store){
-		[
-			'play',
-			'pause',
-			'stop',
-			'next',
-			'prev',
-			'processAudio',
-			'shuffle',
-			'addQueue',
-			'removeQueue',
-			'swapQueue'
-		].forEach((v) => {
+		this.vuexMutations.forEach((v) => {
 			this.on(v, (payload) => {
 				store.commit(v, payload);
 			});
@@ -312,60 +373,11 @@ class QPlayer{
 	}
 
 	get defaultMutations(){
-		return {
-			play(state){
-				state.play = true;
-			},
-
-			pause(state){
-				state.play = false;
-			},
-
-			stop(state){
-				state.play = false;
-				state.time = 0;
-			},
-
-			next(state, playing){
-				state.playing = playing;
-				state.time = 0;
-			},
-
-			prev(state, playing){
-				state.playing = playing;
-				state.time = 0;
-			},
-
-			shuffle(state, shuffle){
-				state.shuffle = shuffle;
-			},
-
-			processAudio(state, milliseconds){
-				state.time = milliseconds;
-			},
-
-			addQueue(state, {queue}){
-				this.queue = queue;
-			},
-
-			removeQueue(state, {queue}){
-				this.queue = queue;
-			},
-
-			swapQueue(state, {queue}){
-				this.queue = queue;
-			}
-		};
+		return this.vuexMutationDefinitions;
 	}
 
 	get defaultStates(){
-		return {
-			play: false,
-			shuffle: false,
-			queue: [],
-			playing: undefined,
-			time: 0
-		}
+		return this.vuexStates;
 	}
 }
 
@@ -391,6 +403,7 @@ class AudioWrapper {
 			this.loading = false;
 			if(this.playing) this.player.play();
 		};
+		xhr.send();
 	}
 
 	get loaded(){
@@ -431,6 +444,7 @@ class VolumePlugin extends QPlugin{
 	}
 
 	connect(ctx, player){
+		this.player = player;
 		this.splitter = ctx.createChannelSplitter(2);
 
 		this.lgain = ctx.createGain();
@@ -472,6 +486,17 @@ class VolumePlugin extends QPlugin{
 		player.addCommand(this, "rdown", () => {
 			this.volumeR -= 0.1;
 		});
+
+		player.vuexMutations.push('volume-l', 'volume-r');
+		player.vuexMutationDefinitions['volume-l'] = (state, vol) => {
+			state['volume-l'] = vol;
+		};
+		player.vuexMutationDefinitions['volume-r'] = (state, vol) => {
+			state['volume-r'] = vol;
+		};
+
+		player.vuexStates['volume-l'] = this.volumeL;
+		player.vuexStates['volume-r'] = this.volumeR;
 		return [this.splitter, this.merger];
 	}
 
@@ -481,6 +506,7 @@ class VolumePlugin extends QPlugin{
 
 	set volumeL(v){
 		this._volumeL = Math.max(0, Math.min(2, v));
+		this.player.emit('volume-l', this._volumeL);
 		this.updateVolume();
 	}
 
@@ -490,6 +516,7 @@ class VolumePlugin extends QPlugin{
 
 	set volumeR(v){
 		this._volumeR = Math.max(0, Math.min(2, v));
+		this.player.emit('volume-r', this._volumeR);
 		this.updateVolume();
 	}
 
@@ -526,11 +553,19 @@ class EqualizerPlugin extends QPlugin{
 		return 'equalizer';
 	}
 
-	connect(ctx){
+	connect(ctx, player){
 		this.ctx = ctx;
 		this.nodes = [];
+		this.player = player;
 
 		Object.keys(this.eq).forEach((hz, i, arr) => {
+			player.vuexMutations.push(`eq-${hz}`);
+			player.vuexMutationDefinitions[`eq-${hz}`] = (state, db) => {
+				state[`eq-${hz}`] = db;
+			};
+
+			player.vuexStates[`eq-${hz}`] = this.eq[hz];
+
 			const node = ctx.createBiquadFilter();
 
 			if(i === 0) {
@@ -557,6 +592,8 @@ class EqualizerPlugin extends QPlugin{
 
 	updateEQ(){
 		Object.keys(this.eq).forEach((hz, i) => {
+			this.player.emit(`eq-${hz}`, this.eq[hz]);
+
 			if(this.nodes[i]){
 				this.nodes[i].gain.value = this.eq[hz];
 			}

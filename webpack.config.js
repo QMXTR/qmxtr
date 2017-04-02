@@ -81,7 +81,7 @@ module.exports = {
 
 	resolve: {
 		alias: {
-			'theme.less': path.resolve(__dirname, 'less', 'theme.less')
+			'theme': path.resolve(__dirname, 'app', 'less', 'theme.less')
 		}
 	},
 

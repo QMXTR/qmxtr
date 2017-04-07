@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "event-emitter": "^0.3.5",
+    "mdi": "^1.9.33",
     "vue": "^2.2.6",
     "vuedraggable": "^2.9.0",
     "vuex": "^2.2.1",

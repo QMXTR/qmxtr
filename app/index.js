@@ -18,17 +18,28 @@ class CustomEffectPlugin extends QPlugin{
 
 const qmxtr = {};
 
-qmxtr.equalizer = new EqualizerPlugin({});
-qmxtr.volume = new VolumePlugin(1, 1);
+qmxtr.equalizer = new EqualizerPlugin({
+	60: 1,
+	170: 1,
+	310: 1,
+	600: 1,
+	1000: 1,
+	3000: 1,
+	6000: 1,
+	12000: 1,
+	14000: 1,
+	16000: 1
+});
+qmxtr.volume = new VolumePlugin(1, 0);
 qmxtr.keyInput = new KeyInputPlugin({});
 qmxtr.sdvx = new CustomEffectPlugin;
 
 qmxtr.vis = document.createElement('div');
 qmxtr.player = new QPlayer({
-	VISUALIZER: qmxtr.vis,
-	PLUGINS: [
-		qmxtr.equalizer,
+	visualizer: qmxtr.vis,
+	plugins: [
 		qmxtr.volume,
+		//qmxtr.equalizer,
 		qmxtr.keyInput,
 		qmxtr.sdvx
 	]
@@ -39,7 +50,8 @@ Vue.use(QmxtrUI);
 
 qmxtr.store = new Vuex.Store({
 	state: qmxtr.player.defaultStates,
-	mutations: qmxtr.player.defaultMutations
+	mutations: qmxtr.player.defaultMutations,
+	actions: qmxtr.player.defaultActions
 });
 
 qmxtr.player.attachToVuexStore(qmxtr.store);

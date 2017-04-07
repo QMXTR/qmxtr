@@ -2,6 +2,7 @@ import QAAPanel from "../components/QAAPanel.vue";
 import QAside from "../components/QAside.vue";
 import QControlBar from "../components/QControlBar.vue";
 import QController from "../components/QController.vue";
+import QIcon from "../components/QIcon.vue";
 import QLyricPanel from "../components/QLyricPanel.vue";
 import QPanel from "../components/QPanel.vue";
 import QPlaylist from "../components/QPlaylist.vue";
@@ -16,6 +17,7 @@ class QmxtrUI{
 		Vue.component('q-aside', QAside);
 		Vue.component('q-controlbar', QControlBar);
 		Vue.component('q-controller', QController);
+		Vue.component('q-icon', QIcon);
 		Vue.component('q-lyric-panel', QLyricPanel);
 		Vue.component('q-panel', QPanel);
 		Vue.component('q-playlist', QPlaylist);

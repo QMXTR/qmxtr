@@ -15,10 +15,10 @@ class QPlayer{
 		if(typeof settings !== 'object') settings = {};
 
 		this.settings = {
-			PRELOAD_ENABLED: true,
-			LYRIC_CALLBACK: undefined,
-			PLUGINS: [],
-			VISUALIZER: '#visualizer',
+			preloadEnabled: true,
+			lyricCallback: undefined,
+			plugins: [],
+			visualizer: '#visualizer',
 		};
 
 		Object.keys(settings).forEach((k) => {
@@ -27,12 +27,12 @@ class QPlayer{
 
 		this.originalQueue = [];
 		this.queue = [];
-		this.pointer = 0;
-		this.loadedPointer = 0;
+		this._pointer = 0;
+		this.loadedPointer = undefined;
 		this._shuffle = false;
 		this._repeat = false;
 		this.surfer = WaveSurfer.create({
-			container: this.settings.VISUALIZER
+			container: this.settings.visualizer
 		});
 		this.lyrics = undefined;
 		this.activatedLyric = undefined;
@@ -106,12 +106,22 @@ class QPlayer{
 			time: 0
 		};
 
-		['play', 'pause', 'stop', 'nextTrack', 'prevTrack', 'toggleShuffle'].forEach((k) => {
+		[
+			'play',
+			'pause',
+			'stop',
+			'togglePlay',
+			'playQueue',
+			'nextTrack',
+			'prevTrack',
+			'toggleShuffle',
+			'toggleRepeat'
+		].forEach((k) => {
 			this.commands[toKebab(k)] = () => this[k]();
 		});
 
-		if(this.settings.PLUGINS.length >= 1){
-			this.plugins = this.settings.PLUGINS.map((v) => {
+		if(this.settings.plugins.length >= 1){
+			this.plugins = this.settings.plugins.map((v) => {
 				return v.connect(this.surfer.backend.ac, this);
 			});
 
@@ -130,7 +140,10 @@ class QPlayer{
 				return curr;
 			})[0];
 
-			this.surfer.backend.setFilter(first, last);
+			this.surfer.backend.disconnectFilters();
+			this.surfer.backend.analyser.disconnect();
+			this.surfer.backend.analyser.connect(first);
+			last.connect(this.surfer.backend.gainNode);
 		}
 
 		this.surfer.on('finish', () => this.nextTrack());
@@ -169,7 +182,7 @@ class QPlayer{
 
 	set shuffle(v){
 		this.emit('shuffle', v);
-		if(!!v === true){
+		if(v){
 			this._shuffle = true;
 			const newQueue = shuffle(this.queue);
 			this.pointer = newQueue.findIndex((v) => v.src === this.current.src);
@@ -189,17 +202,26 @@ class QPlayer{
 		this._repeat = v;
 	}
 
+	set pointer(v){
+		this._pointer = v;
+		this.updateAudio();
+	}
+
+	get pointer(){
+		return this._pointer;
+	}
+
 	addCommand(plugin, commandName, callback){
 		this.commands[`${plugin.getName()}:${commandName}`] = callback;
 	}
 
-	execCommand(commandName){
+	execCommand(commandName, payload){
 		const command = this.commands[commandName];
 		if(typeof command !== 'function') return false;
 
-		this.emit('execCommand', commandName);
+		this.emit('execCommand', commandName, payload);
 
-		command();
+		command(payload);
 	}
 
 	toggleShuffle(){
@@ -218,6 +240,7 @@ class QPlayer{
 			this.queue.splice(Math.floor(Math.random() * this.queue.length), 0, wrapper);
 		}else this.queue.push(wrapper);
 
+		this.updateAudio();
 		this.emit('addQueue', {audio: wrapper, queue: this.queue});
 	}
 
@@ -232,6 +255,7 @@ class QPlayer{
 		this.originalQueue.splice(currentOriginalIndex, 1);
 		this.queue.splice(currentIndex, 1);
 
+		this.updateAudio();
 		this.emit('removeQueue', {audio, queue: this.queue});
 
 		if(this.pointer === currentIndex){
@@ -317,23 +341,29 @@ class QPlayer{
 	play(){
 		if(this.current === undefined) return false;
 
-		this.current.playing = true;
 		if(this.current.loaded) {
 			if(this.loadedPointer !== this.pointer){
 				this.loadedPointer = this.pointer;
+				const thiz = this;
+				const event = function(){
+					thiz.play();
+					thiz.surfer.un('ready', event);
+				};
+
+				this.surfer.on('ready', event);
 				this.surfer.loadBlob(this.current.blob);
 				this.emit('insertMedia', this.current);
+				return;
 			}
 
 			if(this.playing){
 				this.pause();
 			}
-			this.emit('play', this.playing);
 			this.lyrics = undefined;
 			this.activatedLyric = undefined;
 
-			if(this.settings.LYRIC_CALLBACK){
-				this.settings.LYRIC_CALLBACK(this.current, (audio, lyric) => {
+			if(this.settings.lyricCallback){
+				this.settings.lyricCallback(this.current, (audio, lyric) => {
 					if(audio.src !== this.current.src) return false;
 					this.lyrics = {};
 					lyric.forEach((v) => this.lyrics[v[0]] = new Lyric(v[0], v[1]));
@@ -341,6 +371,7 @@ class QPlayer{
 			}
 
 			this.playing = true;
+			this.emit('play', this.current);
 			this.surfer.play();
 		}else{
 			if(!this.current.loading){
@@ -355,6 +386,11 @@ class QPlayer{
 		this.emit('pause');
 		this.playing = false;
 		this.surfer.pause();
+	}
+
+	togglePlay(){
+		if(!this.playing) this.play();
+		else this.pause();
 	}
 
 	stop(){
@@ -372,12 +408,28 @@ class QPlayer{
 		});
 	}
 
+	updateAudio(){
+		this.queue.forEach((v, k) => {
+			if(this.pointer === k){
+				v._playing = true;
+			}else v._playing = false;
+		});
+	}
+
 	get defaultMutations(){
 		return this.vuexMutationDefinitions;
 	}
 
 	get defaultStates(){
 		return this.vuexStates;
+	}
+
+	get defaultActions(){
+		const actions = [];
+		Object.keys(this.commands).forEach((v) => actions[v] = (ctx, payload) => {
+			this.execCommand(v, payload);
+		});
+		return actions;
 	}
 }
 
@@ -389,7 +441,7 @@ class AudioWrapper {
 		this.src = audioSrc;
 		this.loading = false;
 		this.blob = undefined;
-		this.playing = false;
+		this._playing = false;
 	}
 
 	load(){
@@ -408,6 +460,10 @@ class AudioWrapper {
 
 	get loaded(){
 		return this.blob !== undefined;
+	}
+
+	get playing(){
+		return this.player.current.src === this.src;
 	}
 }
 
@@ -455,10 +511,10 @@ class VolumePlugin extends QPlugin{
 
 		this.merger = ctx.createChannelMerger(2);
 
-		this.splitter.connect(this.lgain, 0);
-		this.splitter.connect(this.rgain, 1);
+		this.splitter.connect(this.lgain, 0, 0);
+		this.splitter.connect(this.rgain, 1, 0);
 
-		this.lgain.connect(this.merger, 0);
+		this.lgain.connect(this.merger, 0, 0);
 		this.rgain.connect(this.merger, 0, 1);
 
 		player.addCommand(this, "up", () => {
@@ -530,16 +586,16 @@ class EqualizerPlugin extends QPlugin{
 	constructor(eq){
 		super();
 		this.eq = {
-			60: 0,
-			170: 0,
-			310: 0,
-			600: 0,
-			1000: 0,
-			3000: 0,
-			6000: 0,
-			12000: 0,
-			14000: 0,
-			16000: 0
+			60: 1,
+			170: 1,
+			310: 1,
+			600: 1,
+			1000: 1,
+			3000: 1,
+			6000: 1,
+			12000: 1,
+			14000: 1,
+			16000: 1
 		};
 
 		Object.keys(eq).forEach((k) => {
@@ -573,6 +629,7 @@ class EqualizerPlugin extends QPlugin{
 			}else if(i === arr.length - 1){
 				node.type = 'highshelf';
 			}else {
+				node.type = 'peaking';
 				node.Q.value = 0.5;
 			}
 
@@ -629,7 +686,13 @@ class KeyInputPlugin extends QPlugin{
 
 			keyString += ev.key.toLowerCase();
 
-			if(this.keymap[keyString]) player.execCommand(this.keymap[keyString]);
+			const key = this.keymap[keyString];
+			if(key){
+				if(typeof key === 'string') player.execCommand(key);
+				else if(typeof key === 'object' && key.commandName){
+					player.execCommand(key.commandName, key.payload);
+				}
+			}
 		});
 	}
 }

@@ -23,12 +23,14 @@ const lessExtract = ExtractTextPlugin.extract({
 });
 
 module.exports = {
-	entry: path.resolve(__dirname, 'app', 'index.js'),
+	entry: path.resolve(__dirname, 'lib', 'index.js'),
 
 	output: {
 		path: path.resolve(__dirname, 'dist'),
-		publicPath: '/dist/',
-		filename: 'qmxtr.bundle.js'
+		publicPath: '',
+		filename: 'qmxtr.bundle.js',
+		library: 'Qmxtr',
+		libraryTarget: 'umd'
 	},
 
 	module: {
@@ -43,7 +45,7 @@ module.exports = {
 						'js': {
 							loader: 'babel-loader',
 							options: {
-								presets: ['latest']
+								presets: ['env']
 							}
 						}
 					}
@@ -53,7 +55,7 @@ module.exports = {
 				test: /\.js$/,
 				loader: 'babel-loader',
 				query: {
-					presets: ['latest']
+					presets: ['env']
 				},
 				exclude: /node_modules/
 			},
@@ -81,7 +83,8 @@ module.exports = {
 
 	resolve: {
 		alias: {
-			'theme': path.resolve(__dirname, 'app', 'less', 'theme.less')
+			'variables': path.resolve(__dirname, 'lib', 'less', 'variables.less'),
+			'theme': path.resolve(__dirname, 'lib', 'less', 'theme.less')
 		}
 	},
 
@@ -95,15 +98,6 @@ if(process.env.NODE_ENV === 'production'){
 			'process.env': {
 				NODE_ENV: '"production"'
 			}
-		}),
-		new webpack.optimize.UglifyJsPlugin({
-			sourceMap: true,
-			compress: {
-				warnings: false
-			}
-		}),
-		new webpack.LoaderOptionsPlugin({
-			minimize: true
 		})
 	]);
 }

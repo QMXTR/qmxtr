@@ -1,9 +1,7 @@
 <template>
 	<div class="q-tab">
 		<div class="q-tab-content">
-			<transition name="fade">
-				<slot></slot>
-			</transition>
+			<slot></slot>
 		</div>
 
 		<div class="q-tab-bar">
@@ -16,13 +14,6 @@
 
 <style lang="less" scoped>
 	@import "~theme";
-	.fade-enter-active, .fade-leave-active {
-		transition: opacity .5s;
-	}
-
-	.fade-enter, .fade-leave-to {
-		opacity: 0;
-	}
 
 	.q-tab {
 		width: 100%;
@@ -34,6 +25,7 @@
 	.q-tab-content {
 		width: 100%;
 		flex: 1;
+		overflow: hidden;
 	}
 
 	.q-tab-bar {
@@ -41,21 +33,24 @@
 		height: 30px;
 		padding-left: 10px;
 		display: flex;
-		overflow: hidden;
-		border-top: 1px solid @tabbar-border;
+		overflow-x: hidden;
+		overflow-y: visible;
+		box-shadow: inset 0px 1px 0 0.1px @tabbar-border;
 
 		&:hover {
-			overflow: auto;
+			overflow-x: auto;
 		}
 
 		a {
-			line-height: 30px;
+			line-height: 29px;
+			height: 29px;
 			padding: 0 10px;
 			color: @tabbar-color;
 			font-family: @font;
 			font-weight: @tabbar-weight;
 			transition: all .3s ease;
 			cursor: pointer;
+			border-top: 1px solid transparent;
 
 			&:hover {
 				border-top: 1px solid @tabbar-border-hover;
@@ -63,8 +58,8 @@
 			}
 
 			&.active {
-				border-top: 1px solid @teal;
-				color: @teal;
+				border-top: 1px solid @tabbar-border-active;
+				color: @tabbar-active;
 			}
 		}
 	}

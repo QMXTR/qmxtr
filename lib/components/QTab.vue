@@ -24,8 +24,8 @@
 
 	.q-tab-content {
 		width: 100%;
+		position: relative;
 		flex: 1;
-		overflow: hidden;
 	}
 
 	.q-tab-bar {

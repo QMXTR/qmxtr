@@ -22,7 +22,7 @@
 						</button>
 					</template>
 
-					<span class="q-playlist-text">
+					<span class="q-playlist-text" :class="{playing: element._playing}">
 						{{element.title}} - {{element.author}}
 					</span>
 
@@ -54,7 +54,7 @@
 	.fade-enter, .fade-leave-to {
 		opacity: 0
 	}
-	
+
 	.q-list {
 		padding: 4px;
 		margin-top: 4px;
@@ -108,6 +108,9 @@
 		white-space: nowrap;
 		overflow: hidden;
 		color: @aside-text;
+		&.playing {
+			font-weight: @aside-playing-weight;
+		}
 	}
 
 	.q-playlist, .q-playlist-list {

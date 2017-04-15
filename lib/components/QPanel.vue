@@ -1,5 +1,5 @@
 <template>
-	<div :class="className">
+	<div class="q-panel" :class="{column}">
 		<slot></slot>
 	</div>
 </template>
@@ -10,6 +10,10 @@
 		height: 100%;
 		display: flex;
 		flex: 1;
+
+		&.column {
+			flex-direction: column;
+		}
 	}
 </style>
 
@@ -18,12 +22,6 @@
 		props: {
 			column: {
 				type: Boolean
-			}
-		},
-
-		computed: {
-			className(){
-				return `q-panel${this.column ? ' column' : ''}`;
 			}
 		}
 	};

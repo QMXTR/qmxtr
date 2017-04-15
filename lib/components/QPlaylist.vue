@@ -113,6 +113,11 @@
 		}
 	}
 
+	.q-playlist {
+		overflow-x: hidden;
+		overflow-y: auto;
+	}
+
 	.q-playlist, .q-playlist-list {
 		width: 100%;
 	}

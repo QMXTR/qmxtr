@@ -1,7 +1,7 @@
 <template>
 	<q-panel class="q-seekbar">
 		<span class="q-seekbar-timestamp" v-html="getTimestamp(time)"></span>
-		<vue-slider ref="slider" height="3" style="flex: 1" :tooltip="false" :min="0" :max="1000" :value="0" @callback="seek" @drag-start="pause" @drag-end="play"></vue-slider>
+		<vue-slider ref="slider" :height="3" style="flex: 1" :tooltip="false" :min="0" :max="1000" :value="0" @callback="seek" @drag-start="pause" @drag-end="play"></vue-slider>
 		<span class="q-seekbar-timestamp" v-html="getTimestamp(duration)"></span>
 	</q-panel>
 </template>

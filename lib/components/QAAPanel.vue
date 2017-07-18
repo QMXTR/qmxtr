@@ -111,7 +111,7 @@
 		},
 
 		methods: {
-			togglePlay(){
+			togglePlay() {
 				this.$store.dispatch('toggle-play');
 			}
 		}

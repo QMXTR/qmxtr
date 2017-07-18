@@ -1,7 +1,7 @@
 <template>
-	<main class="q-workspace">
+	<section class="q-workspace">
 		<slot></slot>
-	</main>
+	</section>
 </template>
 
 <style lang="less" scoped>
@@ -9,9 +9,8 @@
 	.q-workspace {
 		top: 0;
 		left: 0;
-		right: @aside-size;
-		bottom: @controlbar-size;
-		position: fixed;
+		width: 100%;
+		height: 100%;
 	}
 </style>
 

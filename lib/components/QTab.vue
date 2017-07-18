@@ -29,9 +29,8 @@
 	}
 
 	.q-tab-bar {
-		width: 100%;
 		height: 30px;
-		padding-left: 10px;
+		padding: 0 10px;
 		display: flex;
 		overflow-x: hidden;
 		overflow-y: visible;
@@ -75,8 +74,15 @@
 		},
 		methods: {
 			open(tab, event){
-				this.tabs.forEach((v) => v.active = false);
+				this.tabs.forEach((v) => {
+					if(v !== tab){
+						v.active = false;
+						v.update();
+					}
+				});
+
 				tab.active = true;
+				tab.update();
 				event.preventDefault();
 			}
 		}

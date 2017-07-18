@@ -1,9 +1,7 @@
 <template>
-	<transition name="fade">
-		<div class="q-tab-panel" :class="{active}" v-show="active">
-			<slot></slot>
-		</div>
-	</transition>
+	<div class="q-tab-panel" :class="{active}">
+		<slot></slot>
+	</div>
 </template>
 
 <style lang="less" scoped>
@@ -11,15 +9,17 @@
 		position: absolute;
 		width: 100%;
 		height: 100%;
-	}
-
-	.fade-enter-active, .fade-leave-active {
 		transition: all .5s;
-	}
 
-	.fade-enter, .fade-leave-to {
-		opacity: 0;
-		transform: translateX(-300px);
+		&:not(.active) {
+			opacity: 0;
+			z-index: -1;
+		}
+
+		&.active {
+			opacity: 1;
+			z-index: auto;
+		}
 	}
 </style>
 
@@ -58,6 +58,15 @@
 			this.parent.tabs.push(this);
 
 			this.$watch('active', () => this.$emit('active'));
+			this.update();
+		},
+
+		methods: {
+			update() {
+				this.$children.forEach((v) => {
+					if(typeof v.update === 'function') v.update();
+				});
+			}
 		},
 
 		beforeDestroy(){

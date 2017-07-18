@@ -1,7 +1,19 @@
 <template>
 	<q-panel class="q-seekbar">
 		<span class="q-seekbar-timestamp" v-html="getTimestamp(time)"></span>
-		<vue-slider ref="slider" :height="3" style="flex: 1" :tooltip="false" :min="0" :max="1000" :value="0" @callback="seek" @drag-start="pause" @drag-end="play"></vue-slider>
+		<vue-slider
+			ref="slider"
+			:height="3"
+			style="flex: 1"
+			:tooltip="false"
+			:min="0"
+			:max="1000"
+			:value="value"
+			@callback="seek"
+			@drag-start="pause"
+			@drag-end="play">
+		</vue-slider>
+
 		<span class="q-seekbar-timestamp" v-html="getTimestamp(duration)"></span>
 	</q-panel>
 </template>
@@ -56,6 +68,12 @@
 	import VueSlider from 'vue-slider-component';
 
 	export default {
+		data() {
+			return {
+				value: 0
+			};
+		},
+
 		computed: {
 			time(){
 				return this.$store.state.time;
@@ -87,7 +105,6 @@
 
 			seek(val){
 				const progress = this.$refs.slider.val;
-				console.log(this.$refs.slider.val, this.$refs.slider.value);
 				const newTime = this.duration / 1000 * progress;
 				if(isFinite(newTime))
 					this.$store.dispatch('seek', newTime);
@@ -112,10 +129,12 @@
 			this.$store.watch((state) => state.time, () => {
 				const progress = Math.round(this.time / this.duration * 1000);
 				if(isFinite(progress)){
-					this.$refs.slider.val = progress;
-					this.$refs.slider.setPosition();
+					this.value = progress;
 				}
+				this.$refs.slider.refresh();
 			});
+
+			window.slider = this.$refs.slider;
 		}
 	};
 </script>

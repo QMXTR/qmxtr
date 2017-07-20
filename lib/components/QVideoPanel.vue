@@ -82,12 +82,10 @@
 			};
 
 			this.$store.watch((state) => state.play, (v) => onVid(() => {
-				if(vid.src === this.playing.src){
-					if(v) {
-						if(vid.paused) vid.play();
-					} else {
-						if(!vid.paused) vid.pause();
-					}
+				if(v && vid.src === this.loaded.video) {
+					if(vid.paused) vid.play();
+				} else {
+					if(!vid.paused) vid.pause();
 				}
 			}));
 

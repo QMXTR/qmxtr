@@ -68,6 +68,7 @@
 
 	.q-playlist-handle {
 		color: @aside-item-handle;
+		cursor: move;
 		line-height: 50px;
 	}
 

@@ -4,7 +4,7 @@
 			<slot></slot>
 		</button>
 
-		<div class="tooltip" :class="direction">
+		<div v-if="tooltip" class="tooltip" :class="direction">
 			<slot name="tooltip"></slot>
 		</div>
 	</div>
@@ -15,14 +15,18 @@
 
 	.q-button-wrapper {
 		background: @button-background;
+		display: inline-block;
+		min-width: 50px;
+		min-height: 50px;
+		flex: 1;
 	}
 
 	.q-button {
 		color: @button-color;
 		border: 1.5px solid @button-background;
 		border-radius: 2px;
-		height: 50px;
-		width: 50px;
+		width: 100%;
+		height: 100%;
 		padding: 10px 5px;
 		position: relative;
 		cursor: pointer;
@@ -137,6 +141,10 @@
 			},
 
 			disabled: {
+				type: Boolean
+			},
+
+			tooltip: {
 				type: Boolean
 			}
 		},

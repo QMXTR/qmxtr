@@ -43,6 +43,7 @@
   },
   "dependencies": {
     "babel-polyfill": "^6.23.0",
+    "crypto-js": "^3.1.9-1",
     "event-emitter": "^0.3.5",
     "ionicons": "^3.0.0",
     "mdi": "^1.9.33",

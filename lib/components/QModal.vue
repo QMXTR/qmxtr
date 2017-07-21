@@ -1,7 +1,7 @@
 <template>
 	<transition name="modal">
 		<div>
-			<div class="backdrop"></div>
+			<div class="backdrop" @click="backdropClose"></div>
 			<section class="q-modal">
 				<a @click="closeModal" class="modal-closer">&times;</a>
 				<slot></slot>
@@ -58,9 +58,20 @@
 
 <script>
 	export default {
+		props: {
+			backdropClosable: {
+				type: Boolean
+			}
+		},
+
 		methods: {
 			closeModal() {
 				this.$emit('close');
+			},
+
+			backdropClose() {
+				if(this.backdropClosable)
+					this.$emit('close');
 			}
 		}
 	};

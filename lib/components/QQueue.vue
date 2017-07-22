@@ -1,48 +1,82 @@
 <template>
-	<div class="q-playlist">
-		<draggable v-model="queue" class="q-playlist-list" :options="sortableOptions" @change="move">
-			<transition-group name="q-list">
-				<div class="q-playlist-item" v-for="element in queue" :key="element.src" @contextmenu="open(element, $event)">
-					<div class="q-playlist-handle">
-						<q-icon icon="menu"></q-icon>
+	<q-panel column>
+		<h1 v-text="playlist.title"></h1>
+
+		<q-button direction="bottom" tooltip>
+			<div class="button-inner">
+				<q-icon icon="pencil"></q-icon>
+			</div>
+
+			<span slot="tooltip">Edit Playlist</span>
+		</q-button>
+
+		<q-button direction="bottom" tooltip>
+			<div class="button-inner">
+				<q-icon icon="menu"></q-icon>
+			</div>
+
+			<span slot="tooltip">Change Playlist</span>
+		</q-button>
+
+		<div class="q-playlist">
+			<draggable v-model="queue" class="q-playlist-list" :options="sortableOptions" @change="move">
+				<transition-group name="q-list">
+					<div
+						class="q-playlist-item"
+						v-for="element in queue"
+						:key="element.src"
+						@contextmenu="open(element, $event)">
+
+						<div class="q-playlist-handle">
+							<q-icon icon="menu"></q-icon>
+						</div>
+
+						<template v-if="isQueue">
+							<template v-if="element._playing">
+								<button class="q-playlist-play q-disabled">
+									<div class="q-inner">
+										<q-icon icon="play-box-outline"></q-icon>
+									</div>
+								</button>
+							</template>
+							<template v-else>
+								<button class="q-playlist-play" @click="play(element)">
+									<div class="q-inner">
+										<q-icon icon="play"></q-icon>
+									</div>
+								</button>
+							</template>
+						</template>
+						<template v-else>
+							<button class="q-playlist-play" @click="add(elememt)">
+								<div class="q-inner">
+									<q-icon icon="ios-plus-empty"></q-icon>
+								</div>
+							</button>
+						</template>
+
+						<span class="q-playlist-text" :class="{playing: element._playing}">
+							{{element.title}} - {{element.author}}
+						</span>
+
+						<div class="q-playlist-menu" :class="{opened: opened === element.src}">
+							<button class="q-playlist-menu-button" @click="close">
+								<q-icon icon="ios-arrow-back-outline" ionic></q-icon>
+							</button>
+
+							<button class="q-playlist-menu-button" @click="reserve(element)">
+								<q-icon icon="ios-timer-outline" ionic></q-icon>
+							</button>
+
+							<button class="q-playlist-menu-button" @click="remove(element)">
+								<q-icon icon="ios-trash-outline" ionic></q-icon>
+							</button>
+						</div>
 					</div>
-
-					<template v-if="element._playing">
-						<button class="q-playlist-play q-disabled">
-							<div class="q-inner">
-								<q-icon icon="play-box-outline"></q-icon>
-							</div>
-						</button>
-					</template>
-					<template v-else>
-						<button class="q-playlist-play" @click="play(element)">
-							<div class="q-inner">
-								<q-icon icon="play"></q-icon>
-							</div>
-						</button>
-					</template>
-
-					<span class="q-playlist-text" :class="{playing: element._playing}">
-						{{element.title}} - {{element.author}}
-					</span>
-
-					<div class="q-playlist-menu" :class="{opened: opened === element.src}">
-						<button class="q-playlist-menu-button" @click="close">
-							<q-icon icon="ios-arrow-back-outline" ionic></q-icon>
-						</button>
-
-						<button class="q-playlist-menu-button" @click="reserve(element)">
-							<q-icon icon="ios-timer-outline" ionic></q-icon>
-						</button>
-
-						<button class="q-playlist-menu-button" @click="remove(element)">
-							<q-icon icon="ios-trash-outline" ionic></q-icon>
-						</button>
-					</div>
-				</div>
-			</transition-group>
-		</draggable>
-	</div>
+				</transition-group>
+			</draggable>
+		</div>
+	</q-panel>
 </template>
 
 <style lang="less" scoped>
@@ -156,7 +190,8 @@
 					handle:'.q-playlist-handle',
 					animation: 150
 				},
-				opened: false
+				opened: false,
+				currentPlaylist: "queue"
 			};
 		},
 
@@ -166,11 +201,25 @@
 
 		computed: {
 			queue(){
-				return this.$store.state.queue;
+				return this.playlist.content;
+			},
+
+			playlist() {
+				let playlist = this.$store.state.playlist.find((v) => v.id === this.currentPlaylist);
+				if(!playlist){
+					this.currentPlaylist = "queue";
+					playlist = this.$store.state.playlist.find((v) => v.id === this.currentPlaylist);
+				}
+
+				return playlist;
 			},
 
 			playing(){
 				return this.$store.state.play;
+			},
+
+			isQueue() {
+				return this.playlist.isQueue;
 			}
 		},
 
@@ -180,7 +229,14 @@
 			},
 
 			reserve(elem){
+				if(!this.isQueue) {
+					this.add(elem);
+				}
 				this.$store.dispatch('reserve-next', elem.src);
+			},
+
+			add(elem) {
+
 			},
 
 			remove(elem){

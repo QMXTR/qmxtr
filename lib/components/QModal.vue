@@ -1,9 +1,9 @@
 <template>
-	<transition name="modal">
-		<div>
+	<transition name="modal" :duration="400">
+		<div v-if="opened">
 			<div class="backdrop" @click="backdropClose"></div>
 			<section class="q-modal">
-				<a @click="closeModal" class="modal-closer">&times;</a>
+				<a @click="closeModal" class="modal-closer" v-if="backdropClosable">&times;</a>
 				<slot></slot>
 			</section>
 		</div>
@@ -23,11 +23,12 @@
 	   z-index: 99;
 	}
 
-	.modal {
+	.q-modal {
 	   position: fixed;
-	   left: 50%;
-	   top: 50%;
-	   transform: translate(-50%, -50%);
+	   left: 15vw;
+	   top: 15vh;
+	   width: 70vw;
+	   height: 70vh;
 	   background: @modal-background;
 	   z-index: 100;
 	}
@@ -41,18 +42,15 @@
 	   right: 10px;
 	}
 
-	.modal-enter {
-		opacity: 0;
+	.q-modal, .backdrop{
+		transition: all .4s ease;
 	}
 
-	.modal-leave-active {
-		opacity: 0;
-	}
-
-	.modal-enter .modal-container,
-	.modal-leave-active .modal-container {
-		-webkit-transform: scale(1.1);
-		transform: scale(1.1);
+	.modal-enter, .modal-leave-active {
+		.q-modal, .backdrop {
+			opacity: 0;
+			transform: scale(1.1);
+		}
 	}
 </style>
 
@@ -60,6 +58,10 @@
 	export default {
 		props: {
 			backdropClosable: {
+				type: Boolean
+			},
+
+			opened: {
 				type: Boolean
 			}
 		},

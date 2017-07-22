@@ -4,37 +4,42 @@
 			<h1 v-text="`Editing ${context}`"></h1>
 
 			<q-panel class="toolkit">
-				<q-panel class="toolkit-panel">
-					<q-button direction="top" @click="checkall">
+				<q-panel class="toolkit-panel toolkit-check">
+					<q-button direction="top" @click="checkall" tooltip>
 						<q-icon icon="checkbox-multiple-marked-outline"></q-icon>
 						<span slot="tooltip">Uncheck/Check All</span>
+					</q-button>
+
+					<q-button direction="top" @click="invert" tooltip>
+						<q-icon icon="select-inverse"></q-icon>
+						<span slot="tooltip">Invert selection</span>
 					</q-button>
 				</q-panel>
 
 				<q-panel class="toolkit-panel toolkit-copy">
-					<q-button :disabled="isQueue" @click="enqueue">
+					<q-button :disabled="isQueue" @click="enqueue" tooltip>
 						<q-icon icon="library-plus"></q-icon>
 						<span slot="tooltip">Add to Queue</span>
 					</q-button>
 
-					<q-button @click="copy">
+					<q-button @click="copy" tooltip>
 						<q-icon icon="content-copy"></q-icon>
 						<span slot="tooltip">Copy to another Playlist</span>
 					</q-button>
 				</q-panel>
 
 				<q-panel class="toolkit-panel toolkit-manipulate">
-					<q-button :disabled="!hasCheck" @click="up" tooltip>
+					<q-button :disabled="!hasCheck || !canModify" @click="up" tooltip>
 						<q-icon icon="chevron-up"></q-icon>
 						<span slot="tooltip">Up</span>
 					</q-button>
 
-					<q-button :disabled="!hasCheck" @click="down" tooltip>
+					<q-button :disabled="!hasCheck || !canModify" @click="down" tooltip>
 						<q-icon icon="chevron-down"></q-icon>
 						<span slot="tooltip">Down</span>
 					</q-button>
 
-					<q-button :disabled="!hasCheck" @click="removeFrom" tooltip>
+					<q-button :disabled="!hasCheck || !canModify" @click="removeFrom" tooltip>
 						<q-icon icon="delete"></q-icon>
 						<span slot="tooltip">Delete from {{context}}</span>
 					</q-button>
@@ -66,20 +71,21 @@
 						<span slot="tooltip">Reverse</span>
 					</q-button>
 				</q-panel>
-
-				<q-panel class="toolkit-panel">
-					<q-button :disabled="!removable" tooltip>
-						<q-icon icon="playlist-remove"></q-icon>
-						<span slot="tooltip">Remove {{context}}</span>
-					</q-button>
-				</q-panel>
 			</q-panel>
+
+			<div class="input">
+				<input type="text" :id="`search-playlist${modalId}`" v-model="search" :data-value="search">
+				<label :for="`search-playlist${modalId}`">
+					Search...
+				</label>
+				<div class="decorator"></div>
+			</div>
 		</div>
 
 		<q-panel class="q-editor">
 			<section class="q-edit-list-panel">
 				<draggable
-					v-model="content"
+					v-model="blurryContent"
 					class="q-list-editor-list"
 					:options="sortableOptions"
 					@change="propagate">
@@ -87,10 +93,10 @@
 					<transition-group name="q-list">
 						<div
 							class="q-list-editor-item"
-							v-for="(element, index) in content"
+							v-for="(element, index) in blurryContent"
 							:key="element.src">
 
-							<div class="q-list-editor-handle">
+							<div class="q-list-editor-handle" :class="{disabled: sortableOptions.disabled}">
 								<q-icon icon="menu"></q-icon>
 								{{index + 1}}
 							</div>
@@ -110,6 +116,8 @@
 				</draggable>
 			</section>
 		</q-panel>
+
+		<q-select-list-modal ref="listChooser"></q-select-list-modal>
 	</q-panel>
 </template>
 
@@ -139,6 +147,10 @@
 		line-height: 50px;
 		cursor: move;
 		color: @editor-color;
+
+		&.disabled {
+			cursor: not-allowed;
+		}
 	}
 
 	.q-list-editor-item {
@@ -206,6 +218,8 @@
 </style>
 
 <script>
+	import swal from "sweetalert";
+
 	import Draggable from "vuedraggable";
 
 	export default {
@@ -218,13 +232,21 @@
 				unwatch: undefined,
 				checkedList: [],
 				titleUnicode: false,
-				authorUnicode: false
+				authorUnicode: false,
+				search: "",
+				modalId: Math.random().toString(36).slice(2)
 			};
 		},
 
 		computed: {
 			content() {
 				return this.playlist.content;
+			},
+
+			blurryContent() {
+				return this.content.filter((v) => {
+					return v.title.includes(this.search) || v.author.includes(this.search);
+				});
 			},
 
 			isQueue() {
@@ -237,6 +259,10 @@
 
 			hasCheck() {
 				return this.checkedList.length > 0;
+			},
+
+			canModify() {
+				return this.search === "";
 			}
 		},
 
@@ -259,10 +285,14 @@
 					this.playlist.remove(evt.removed.element.src);
 			},
 
+			invert() {
+				this.checkedList = this.content.map((v) => v.src).filter((v) => !this.checkedList.includes(v));
+			},
+
 			checkall() {
 				if(this.hasCheck)
 					this.checkedList = [];
-				else this.checkedList = this.content.map((v) => v.src);
+				else this.checkedList = this.blurryContent.map((v) => v.src);
 			},
 
 			unicodeText(isUnicode) {
@@ -285,7 +315,16 @@
 			},
 
 			copy() {
+				this.$refs.listChooser.$once('select', (id) => {
+					const target = this.playlist.player.playlist[id];
+					let source = this.content.filter((v) => this.checkedList.includes(v.src));
+					if(source.length === 0) source = this.content;
+					source.forEach((v) => target.add(v));
 
+					swal("Copied!", `Successfully copied to playlist ${target.title}.`, "success");
+				});
+
+				this.$refs.listChooser.open();
 			},
 
 			up() {
@@ -346,6 +385,11 @@
 						this.$forceUpdate();
 					});
 				}
+			},
+
+			search() {
+				this.sortableOptions.disabled = (this.search === "");
+				console.log(this.sortableOptions.disabled);
 			}
 		}
 	};

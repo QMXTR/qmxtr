@@ -315,13 +315,19 @@
 			},
 
 			copy() {
+				this.$refs.listChooser.$off('select');
 				this.$refs.listChooser.$once('select', (id) => {
 					const target = this.playlist.player.playlist[id];
 					let source = this.content.filter((v) => this.checkedList.includes(v.src));
 					if(source.length === 0) source = this.content;
 					source.forEach((v) => target.add(v));
 
-					swal("Copied!", `Successfully copied to playlist ${target.title}.`, "success");
+					swal({
+						title: "Copied!",
+						text: `Successfully copied to playlist ${target.title}.`,
+						type: "success",
+						customClass: "q-success-alert"
+					});
 				});
 
 				this.$refs.listChooser.open();

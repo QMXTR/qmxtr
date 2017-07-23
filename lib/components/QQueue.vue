@@ -1,22 +1,25 @@
 <template>
 	<q-panel column>
-		<h1 v-text="playlist.title"></h1>
+		<q-panel class="playlist-titlebar">
+			<h1 v-text="playlist.title"></h1>
 
-		<q-button direction="bottom" tooltip>
-			<div class="button-inner">
-				<q-icon icon="pencil"></q-icon>
-			</div>
+			<q-panel>
+				<q-button @click="edit">
+					<div class="button-inner">
+						<q-icon icon="pencil"></q-icon>
+					</div>
+				</q-button>
 
-			<span slot="tooltip">Edit Playlist</span>
-		</q-button>
+				<q-button @click="select">
+					<div class="button-inner">
+						<q-icon icon="menu"></q-icon>
+					</div>
+				</q-button>
+			</q-panel>
+		</q-panel>
 
-		<q-button direction="bottom" tooltip>
-			<div class="button-inner">
-				<q-icon icon="menu"></q-icon>
-			</div>
-
-			<span slot="tooltip">Change Playlist</span>
-		</q-button>
+		<q-edit-list-modal ref="editor" :playlist="playlist"></q-edit-list-modal>
+		<q-select-list-modal ref="selector"></q-select-list-modal>
 
 		<div class="q-playlist">
 			<draggable v-model="queue" class="q-playlist-list" :options="sortableOptions" @change="move">
@@ -106,6 +109,38 @@
 		line-height: 50px;
 	}
 
+	.playlist-titlebar {
+		height: 50px;
+		justify-content: space-between;
+		flex: none;
+		padding-left: 10px;
+		box-sizing: border-box;
+
+		h1 {
+			font-family: @font;
+			color: #fff;
+			margin: 0;
+			line-height: 50px;
+			text-overflow: ellipsis;
+			flex: 3;
+			overflow: hidden;
+			white-space: nowrap;
+			font-size: 1rem;
+			font-weight: 400;
+
+			&:hover {
+				text-overflow: initial;
+				overflow: auto;
+			}
+		}
+
+		.q-button {
+			height: 50px;
+			width: 50px;
+			flex: none;
+		}
+	}
+
 	.q-playlist-play {
 		&.q-disabled {
 			cursor: default;
@@ -191,7 +226,8 @@
 					animation: 150
 				},
 				opened: false,
-				currentPlaylist: "queue"
+				currentPlaylist: "queue",
+				unwatch: undefined
 			};
 		},
 
@@ -236,23 +272,18 @@
 			},
 
 			add(elem) {
-
+				this.playlist.player.addToQueueWrapped(elem);
 			},
 
 			remove(elem){
-				this.$store.dispatch('remove-from-queue', elem.src);
+				this.playlist.remove(elem.src);
 			},
 
 			move(evt){
 				if(evt.moved)
-					this.$store.dispatch('change-index-order', {
-						currentIndex: evt.moved.oldIndex,
-						newIndex: evt.moved.newIndex
-					});
+					this.playlist.reorderIndex(evt.moved.oldIndex, evt.moved.newIndex);
 				else if(evt.removed)
-					this.$store.dispatch('remove-from-queue', {
-						src: evt.removed.element.src
-					});
+					this.playlist.remove(evt.removed.element.src);
 			},
 
 			open(elem, evt){
@@ -260,12 +291,33 @@
 				evt.preventDefault();
 			},
 
-			/*isOpened(elem){
-				return `q-playlist-menu${(this.opened === elem.src) ? ' opened' : ''}`;
-			},*/
-
 			close(){
 				this.opened = false;
+			},
+
+			edit() {
+				this.$refs.editor.open();
+			},
+
+			select() {
+				this.$refs.selector.$off('select');
+				this.$refs.selector.$once('select', (id) => {
+					this.currentPlaylist = id;
+				});
+				this.$refs.selector.open();
+			}
+		},
+
+		watch: {
+			playlist: {
+				immediate: true,
+				handler() {
+					if(this.unwatch) this.unwatch();
+					this.checkedList = [];
+					this.unwatch = this.$store.watch(this.playlist.watcher, () => {
+						this.$forceUpdate();
+					});
+				}
 			}
 		}
 	}

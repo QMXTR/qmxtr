@@ -6,13 +6,13 @@
 			<div class="selector-list">
 				<q-panel column>
 					<button
-						@click="choose(list.id, ...arguments)"
+						@click="choose(list.id)"
 						:class="{active: chosen === list.id}"
 						v-for="(list, id) in playlist">
 
 						<div class="button-inner">
 							<div class="description">
-								<span class="title">
+								<span class="title" :contenteditable="list.removable">
 									{{list.title}}
 								</span>
 
@@ -23,7 +23,7 @@
 
 							<a
 								class="secondary-button"
-								@click="remove(list.id, list.title, ...arguments)"
+								@click="remove(list.id, list.title)"
 								v-if="list.removable">
 
 								<q-icon icon="delete-forever"></q-icon>
@@ -102,6 +102,7 @@
 					display: flex;
 					white-space: nowrap;
 					text-overflow: ellipsis;
+					align-items: center;
 
 					.songs {
 						color: lighten(@grey, 20%);
@@ -244,16 +245,11 @@
 					showCancelButton: true,
 					confirmButtonColor: "#DD6B55",
 					confirmButtonText: "Delete",
-					closeOnConfirm: false,
-					inputPlaceholder: `${title}`
+					inputPlaceholder: `${title}`,
+					closeOnConfirm: false
 				},
 				(input) => {
 					if(input === false) return false;
-
-					if(input === "") {
-						swal.showInputError("You should enter your playlist title here.");
-						return false;
-					}
 
 					if(input !== title) {
 						swal.showInputError("There is something wrong in your title. Please check typo again!");
@@ -268,13 +264,17 @@
 						confirmButtonColor: "#DD6B55",
 						confirmButtonText: "Delete",
 						cancelButtonText: "Cancel",
-						closeOnConfirm: false,
-						closeOnCancel: false
+						closeOnConfirm: false
 					},
 					(isConfirm) => {
 						if (isConfirm) {
 							this.$store.dispatch('remove-playlist', id);
-							swal("Deleted!", "Your playlist has been removed.", "success");
+							swal({
+								title: "Deleted!",
+								text: "Your playlist has been removed.",
+								type: "success",
+								customClass: "q-success-alert"
+							});
 						}
 					});
 				});

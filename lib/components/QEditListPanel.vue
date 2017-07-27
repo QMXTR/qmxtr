@@ -90,7 +90,7 @@
 					:options="sortableOptions"
 					@change="propagate">
 
-					<transition-group name="q-list">
+					<transition-group name="q-list" :duration="400">
 						<div
 							class="q-list-editor-item"
 							v-for="(element, index) in blurryContent"
@@ -141,12 +141,16 @@
 
 	.q-list-enter, .q-list-leave-active {
 		opacity: 0;
+		transform: translateX(50px);
+		height: 0 !important;
+		overflow: hidden;
 	}
 
 	.q-list-editor-handle {
 		line-height: 50px;
 		cursor: move;
 		color: @editor-color;
+		position: relative;
 
 		&.disabled {
 			cursor: not-allowed;
@@ -160,6 +164,7 @@
 		font-family: @font;
 		font-weight: @aside-font-weight;
 		position: relative;
+		transition: all .4s ease;
 		&>* {
 			margin: 5px;
 		}
@@ -181,6 +186,7 @@
 	.q-edit-list-panel {
 		max-width: 768px;
 		margin: 0 auto;
+		width: 100%;
 	}
 
 	.toolkit {
@@ -206,6 +212,7 @@
 
 	.hover {
 		max-width: 768px;
+		width: 100%;
 		margin: 0 auto;
 		background: #fff;
 		position: relative;
@@ -244,17 +251,15 @@
 			},
 
 			blurryContent() {
+				const query = this.search.toLowerCase();
+
 				return this.content.filter((v) => {
-					return v.title.includes(this.search) || v.author.includes(this.search);
+					return v.title.toLowerCase().includes(query) || v.author.toLowerCase().includes(query);
 				});
 			},
 
 			isQueue() {
 				return this.playlist.isQueue;
-			},
-
-			removable() {
-				return this.playlist.removable;
 			},
 
 			hasCheck() {
@@ -350,9 +355,24 @@
 			},
 
 			removeFrom() {
+				const unfinished = [];
+
 				this.checkedList.forEach((v) => {
-					this.playlist.remove(v);
+					const result = this.playlist.remove(v);
+					if(result === false && this.playlist.isLibrary) {
+						unfinished.push(this.content.find((v1) => v1.src === v).title);
+					}
 				});
+
+				if(unfinished.length > 0) {
+					swal({
+						title: "Removed with warnings",
+						text: `Can't remove songs: ${unfinished.join(', ')}. ` +
+							`Please remove the songs from other playlists. ` +
+							`Since this playlist is library, you can't remove songs which consist other playlists.`,
+						type: "warning"
+					});
+				}
 			},
 
 			sort(type) {
@@ -394,8 +414,7 @@
 			},
 
 			search() {
-				this.sortableOptions.disabled = (this.search === "");
-				console.log(this.sortableOptions.disabled);
+				this.sortableOptions.disabled = (this.search !== "");
 			}
 		}
 	};

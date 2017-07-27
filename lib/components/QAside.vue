@@ -12,6 +12,7 @@
 		top: 0;
 		right: 0;
 		height: 100%;
+		flex: none;
 	}
 </style>
 

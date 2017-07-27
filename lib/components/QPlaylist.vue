@@ -51,9 +51,9 @@
 							</template>
 						</template>
 						<template v-else>
-							<button class="q-playlist-play" @click="add(elememt)">
+							<button class="q-playlist-play" @click="addWrapped(element)">
 								<div class="q-inner">
-									<q-icon icon="ios-plus-empty"></q-icon>
+									<q-icon icon="plus"></q-icon>
 								</div>
 							</button>
 						</template>
@@ -217,6 +217,7 @@
 
 <script>
 	import draggable from "vuedraggable";
+	import iziToast from "izitoast";
 
 	export default {
 		data(){
@@ -267,8 +268,23 @@
 			reserve(elem){
 				if(!this.isQueue) {
 					this.add(elem);
+					iziToast.show({
+						title: 'Reserved',
+						message: 'Successfully added to queue and reserved!',
+						color :'green'
+					});
 				}
 				this.$store.dispatch('reserve-next', elem.src);
+			},
+
+			addWrapped(elem) {
+				this.add(elem);
+
+				iziToast.show({
+					title: 'Added',
+					message: 'Successfully added to queue!',
+					color :'green'
+				});
 			},
 
 			add(elem) {
@@ -276,7 +292,29 @@
 			},
 
 			remove(elem){
-				this.playlist.remove(elem.src);
+				const result = this.playlist.remove(elem.src);
+				if(result === false) {
+					if(this.playlist.isLibrary) {
+						iziToast.show({
+							title: `Couldn't remove.`,
+							message: `Please remove the songs from other playlists. ` +
+							`Since this playlist is library, you can't remove songs which consist other playlists.`,
+							color :'yellow'
+						});
+					} else {
+						iziToast.show({
+							title: `Couldn't remove.`,
+							message: `You can't remove the song from the playlist.`,
+							color :'yellow'
+						});
+					}
+				} else {
+					iziToast.show({
+						title: 'Removed',
+						message: 'Successfully removed!',
+						color :'green'
+					});
+				}
 			},
 
 			move(evt){

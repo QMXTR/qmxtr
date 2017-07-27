@@ -12,7 +12,7 @@
 
 						<div class="button-inner">
 							<div class="description">
-								<span class="title" :contenteditable="list.removable">
+								<span class="title">
 									{{list.title}}
 								</span>
 

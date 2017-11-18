@@ -6,6 +6,7 @@
 			<div class="selector-list">
 				<q-panel column>
 					<button
+						class="button"
 						@click="choose(list.id)"
 						:class="{active: chosen === list.id}"
 						v-for="(list, id) in playlist">
@@ -42,7 +43,7 @@
 					<div class="decorator"></div>
 				</div>
 
-				<button class="add-button" @click="newPlaylist">
+				<button class="add-button button" @click="newPlaylist">
 					<div class="button-inner">
 						<q-icon icon="playlist-plus"></q-icon>
 						Create
@@ -51,14 +52,14 @@
 			</q-panel>
 
 			<q-panel class="actions">
-				<button class="primary" :class="{disabled: !valid}" @click="emitChosen">
+				<button class="primary button" :class="{disabled: !valid}" @click="emitChosen">
 					<div class="button-inner">
 						<q-icon icon="check"></q-icon>
 						Select
 					</div>
 				</button>
 
-				<button @click="emitCancel">
+				<button class="button" @click="emitCancel">
 					<div class="button-inner">
 						<q-icon icon="close"></q-icon>
 						Cancel
@@ -119,55 +120,6 @@
 		font-family: @font;
 	}
 
-	button {
-		flex: 1;
-		background: @white;
-		color: @grey;
-		min-height: 50px;
-		transition: all .4s ease;
-
-		&.disabled {
-			background: @grey;
-			cursor: not-allowed;
-			&:hover, &:active {
-				background: @grey;
-			}
-		}
-
-		.button-inner {
-			font-size: 1.1rem;
-			font-family: @font;
-			color: @grey;
-		}
-
-		&:hover {
-			background: lighten(@white-grey, 5%);
-		}
-
-		&:active {
-			background: mix(@white-grey, @white);
-		}
-
-		&.active {
-			background: @teal;
-			color: #fff;
-
-			&:active {
-				background: lighten(@teal, 10%);
-			}
-		}
-
-		.secondary-button {
-			float: right;
-			font-size: 1.5rem;
-			cursor: pointer;
-
-			&:hover {
-				color: @dark-teal;
-			}
-		}
-	}
-
 	.add-button {
 		flex: 1;
 	}
@@ -177,21 +129,6 @@
 		margin-bottom: 10px;
 		height: 50px;
 		flex: none;
-	}
-
-	.primary {
-		background: darken(@teal, 10%);
-		.button-inner {
-			color: @white;
-		}
-
-		&:hover {
-			background: lighten(@teal, 5%);
-		}
-
-		&:active {
-			background: darken(@teal, 2%);
-		}
 	}
 </style>
 

@@ -8,10 +8,11 @@
 			<h2 class="q-song-title" v-text="elem.title" :title="elem.title"></h2>
 			<span class="q-song-author" v-text="elem.author" :title="elem.author"></span>
 
-			<a class="q-song-overlay">
+			<a class="q-song-overlay" @click="addToQueue(elem)">
 				<q-icon icon="play"></q-icon>
 			</a>
 		</div>
+		<slot></slot>
 	</q-panel>
 </template>
 
@@ -105,6 +106,12 @@
 			content: {
 				type: Array,
 				required: true
+			}
+		},
+
+		methods: {
+			addToQueue(elem) {
+				this.$store.dispatch('add-to-queue-wrapped', elem);
 			}
 		}
 	};

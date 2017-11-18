@@ -9,9 +9,8 @@
 				@change="updateValue"
 				@keydown="quick">
 
-			<label :for="`dropdown${id}`">
-				Select
-			</label>
+			<label :for="`dropdown${id}`" v-text="dropdownText"></label>
+
 			<div class="decorator"></div>
 			<q-icon class="icon-button" icon="unfold-more-horizontal"></q-icon>
 			<div class="available">
@@ -110,6 +109,11 @@
 			available: {
 				type: Array,
 				required: true
+			},
+
+			dropdownText: {
+				type: String,
+				default: "Select"
 			}
 		},
 

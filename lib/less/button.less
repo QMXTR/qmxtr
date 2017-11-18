@@ -1,0 +1,68 @@
+button.button {
+	flex: 1;
+	background: @white;
+	color: @grey;
+	min-height: 50px;
+	transition: all .4s ease;
+
+	&.primary {
+		background: darken(@teal, 10%);
+		.button-inner {
+			color: @white;
+		}
+
+		&:hover {
+			background: lighten(@teal, 5%);
+		}
+
+		&:active {
+			background: darken(@teal, 2%);
+		}
+	}
+
+	&.disabled {
+		background: @grey;
+		cursor: not-allowed;
+
+		.button-inner {
+			color: @white;
+		}
+
+		&:hover, &:active {
+			background: @grey;
+		}
+	}
+
+	&.active {
+		background: @teal;
+		color: #fff;
+
+		&:active {
+			background: lighten(@teal, 10%);
+		}
+	}
+
+	&:hover {
+		background: lighten(@white-grey, 5%);
+	}
+
+	&:active {
+		background: mix(@white-grey, @white);
+	}
+
+	.button-inner {
+		font-size: 1.1rem;
+		font-family: @font;
+		color: @grey;
+	}
+
+	.secondary-button {
+		float: right;
+		font-size: 1.5rem;
+		cursor: pointer;
+
+		&:hover {
+			color: @dark-teal;
+		}
+	}
+}

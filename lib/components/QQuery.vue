@@ -15,7 +15,7 @@
 					<div class="decorator"></div>
 				</div>
 			</div>
-			<q-dropdown :available="providers" v-model="providerName" dropdown-text="Select Provider"></q-dropdown>
+			<q-dropdown :available="providerNames" v-model="providerName" dropdown-text="Select Provider"></q-dropdown>
 			<button class="button search-button" :class="{disabled: !provider}" @click="search">
 				<div class="button-inner">
 					Search
@@ -156,7 +156,7 @@
 			},
 
 			provider() {
-				return this.providers.find((v) => v.getName() === providerName);
+				return this.providers.find((v) => v.getName() === this.providerName);
 			},
 
 			searchFinished() {
@@ -174,6 +174,7 @@
 			search() {
 				this.queryResult = [];
 				this.last = 0;
+				this.total = Infinity;
 				this.queryNext();
 			},
 
@@ -187,7 +188,7 @@
 				(async () => {
 					try {
 						const result = await this.provider.query(this.query, this.last, this.itemsPerSearch);
-						this.queryResult = this.queryResult.push(...result.content);
+						this.queryResult.push(...result.content);
 						this.last += result.content.length;
 						this.total = result.total;
 						this.pagination = Math.ceil(this.last / this.itemsPerSearch);

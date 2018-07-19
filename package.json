@@ -2,7 +2,7 @@
   "name": "qmxtr",
   "version": "1.0.0",
   "description": "A fancy music player which supports queue, eq and lyrics.",
-  "main": "main.js",
+  "main": "index.js",
   "scripts": {
     "start": "webpack --watch",
     "build": "webpack"

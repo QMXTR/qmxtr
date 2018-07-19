@@ -24,7 +24,7 @@
 		overflow: auto;
 
 		.q-song {
-			flex-grow: 1;
+			// flex-grow: 1;
 			width: ~"calc(25% - 60px)";
 			height: 33%;
 			box-sizing: border-box;
